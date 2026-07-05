@@ -1,0 +1,20 @@
+# Terraform generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+ 
+# Terraform package files
+*.zip
+ 
+# Python generated files
+__pycache__/
+*.pyc
+ 
+# Environment and secret files
+.env
+*.pem
+ 
+# Generated reports
+transaction-execution-report.csv
