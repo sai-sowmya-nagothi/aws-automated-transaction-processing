@@ -77,6 +77,27 @@ def lambda_handler(event, context):
             })
         }
  
+    # Step Functions path
+    if event.get("bucket") and event.get("key"):
+        record = {
+            "s3": {
+                "bucket": {
+                    "name": event["bucket"]
+                },
+                "object": {
+                    "key": event["key"]
+                }
+            }
+        }
+ 
+        result = process_s3_record(record)
+ 
+        return {
+            "statusCode": 200,
+            "message": "CSV transaction file processed successfully",
+            "result": result
+        }
+ 
     # API Gateway path
     body = event.get("body", event)
  
