@@ -14,16 +14,48 @@ resource "aws_iam_role" "step_functions_role" {
 }
 
 resource "aws_iam_role_policy" "step_functions_policy" {
-  name = "invoke-transaction-processor"
+  name = "run-transaction-processor-ecs"
   role = aws_iam_role.step_functions_role.id
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "lambda:InvokeFunction"
-      Resource = aws_lambda_function.transaction_processor.arn
-    }]
+
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:RunTask"
+        ]
+        Resource = aws_ecs_task_definition.transaction_processor.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:StopTask",
+          "ecs:DescribeTasks"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = [
+          aws_iam_role.ecs_task_execution_role.arn,
+          aws_iam_role.ecs_task_role.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "events:PutTargets",
+          "events:PutRule",
+          "events:DescribeRule"
+        ]
+        Resource = "*"
+      }
+    ]
   })
 }
 
@@ -31,27 +63,59 @@ resource "aws_sfn_state_machine" "transaction_workflow" {
   name     = "transaction-processing-workflow"
   role_arn = aws_iam_role.step_functions_role.arn
 
+  depends_on = [
+    aws_iam_role_policy.step_functions_policy
+  ]
+
   definition = jsonencode({
-    Comment = "Automatically process uploaded transaction CSV files"
+    Comment = "Process uploaded CSV files using ECS Fargate"
     StartAt = "ProcessCSV"
 
     States = {
       ProcessCSV = {
-        Type       = "Task"
-        Resource   = "arn:aws:states:::lambda:invoke"
-        OutputPath = "$.Payload"
+        Type     = "Task"
+        Resource = "arn:aws:states:::ecs:runTask.sync"
 
         Parameters = {
-          FunctionName = aws_lambda_function.transaction_processor.arn
-          "Payload.$"  = "$"
-        }
+          LaunchType = "FARGATE"
 
-        Retry = [{
-          ErrorEquals     = ["Lambda.ServiceException", "Lambda.TooManyRequestsException"]
-          IntervalSeconds = 2
-          MaxAttempts     = 3
-          BackoffRate     = 2
-        }]
+          Cluster = aws_ecs_cluster.transaction_processing.arn
+
+          TaskDefinition = aws_ecs_task_definition.transaction_processor.arn
+
+          NetworkConfiguration = {
+            AwsvpcConfiguration = {
+              Subnets = [
+                aws_subnet.public.id
+              ]
+
+              SecurityGroups = [
+                aws_security_group.processing.id
+              ]
+
+              AssignPublicIp = "ENABLED"
+            }
+          }
+
+          Overrides = {
+            ContainerOverrides = [
+              {
+                Name = "transaction-processor"
+
+                Environment = [
+                  {
+                    Name      = "S3_BUCKET"
+                    "Value.$" = "$.bucket"
+                  },
+                  {
+                    Name      = "S3_KEY"
+                    "Value.$" = "$.key"
+                  }
+                ]
+              }
+            ]
+          }
+        }
 
         End = true
       }
@@ -125,3 +189,4 @@ resource "aws_cloudwatch_event_target" "start_transaction_workflow" {
 INPUT
   }
 }
+
