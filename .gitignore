@@ -1,11 +1,17 @@
 # Terraform generated files
-.terraform/
+**/.terraform/*
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
+.terraform.lock.hcl
 crash.log
  
-# Terraform package files
+# Terraform backup files
+*.tf.backup
+*.backup
+ 
+# Generated deployment packages
 *.zip
  
 # Python generated files
@@ -15,7 +21,9 @@ __pycache__/
 # Environment and secret files
 .env
 *.pem
+*.key
  
-# Generated reports
-transaction-execution-report.csv
-test-transactions.csv
+# Editor files
+.vscode/
+.idea/
+*.swp

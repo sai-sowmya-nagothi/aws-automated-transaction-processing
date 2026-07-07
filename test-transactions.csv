@@ -1,0 +1,4 @@
+transaction_id,account_id,amount,currency,type
+csv-txn-001,account-101,125.50,USD,purchase
+csv-txn-002,account-102,75.25,USD,refund
+csv-txn-003,account-103,300.00,EUR,transfer
