@@ -1,8 +1,4 @@
-# ============================================================
-# GitHub OIDC Provider
-# Allows GitHub Actions to authenticate to AWS without
-# storing permanent AWS access keys in GitHub.
-# ============================================================
+
 
 resource "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
@@ -15,16 +11,6 @@ resource "aws_iam_openid_connect_provider" "github" {
     Name = "github-actions-oidc"
   }
 }
-
-
-# ============================================================
-# Single IAM Role for GitHub-Based Infrastructure Deployment
-#
-# This is the ONE deployment role required by the assignment.
-# GitHub Actions assumes this role and Terraform uses it to
-# create/update the EC2 instance, ECS task definition, and
-# the remaining project infrastructure.
-# ============================================================
 
 resource "aws_iam_role" "github_terraform_deployment" {
   name = "github-terraform-deployment-role"
@@ -59,24 +45,11 @@ resource "aws_iam_role" "github_terraform_deployment" {
 }
 
 
-# ============================================================
-# Deployment Permissions
-#
-# For the assignment implementation, the single GitHub role
-# receives permission to deploy the AWS resources managed by
-# this Terraform project.
-# ============================================================
-
 resource "aws_iam_role_policy_attachment" "github_terraform_admin" {
   role       = aws_iam_role.github_terraform_deployment.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
-
-# ============================================================
-# Output
-# Copy this ARN later into the GitHub Actions workflow.
-# ============================================================
 
 output "github_terraform_deployment_role_arn" {
   description = "IAM role assumed by GitHub Actions for Terraform deployment"
